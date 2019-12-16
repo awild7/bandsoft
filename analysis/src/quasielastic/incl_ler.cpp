@@ -21,6 +21,8 @@
 
 #include "RCDB/Connection.h"
 
+#include "constants.h"
+
 using namespace std;
 
 int getRunNumber( string filename );
@@ -40,6 +42,28 @@ int main(int argc, char** argv) {
 	// Create output tree
 	TFile * outFile = new TFile(argv[1],"RECREATE");
 	TTree * outTree = new TTree("skim","CLAS and BAND Physics");
+	double gated_charge	= 0;
+	double p_e		= 0;
+	double theta_e		= 0;
+	double phi_e		= 0;
+	double q		= 0;
+	double theta_q		= 0;
+	double phi_q		= 0;
+	double nu		= 0;
+	double Q2		= 0;
+	double xB		= 0;
+	double W2		= 0;
+	outTree->Branch("gated_charge"	,&gated_charge		);
+	outTree->Branch("p_e"		,&p_e			);
+	outTree->Branch("theta_e"	,&theta_e		);
+	outTree->Branch("phi_e"		,&phi_e			);
+	outTree->Branch("q"		,&q			);
+	outTree->Branch("theta_q"	,&theta_q		);
+	outTree->Branch("phi_q"		,&phi_q			);
+	outTree->Branch("nu"		,&nu			);
+	outTree->Branch("Q2"		,&Q2			);
+	outTree->Branch("xB"		,&xB			);
+	outTree->Branch("W2"		,&W2			);
 	TH2D * phi_theta = new TH2D("phi_v_theta","phiE_v_thetaE;phi;theta;Counts",100,0,2*M_PI,100,0.1,0.7);
 	TH2D * eop_p = new TH2D("eop_v_p","eE/pE_v_pE;eE/pE;pE;Counts",110,0,11,150,0,1.5);
 
@@ -54,6 +78,20 @@ int main(int argc, char** argv) {
 	hist_list_1D.push_back(hist_W2);
 	TH1D * hist_chi =  new TH1D("hist_chi_Incl" ,"hist;chi;Counts",50,0,1.5);
 	hist_list_1D.push_back(hist_chi);
+
+	TH1D * hist_U =  new TH1D("hist_U_Incl" ,"hist;U;Counts",40,-1,1);
+	hist_list_1D.push_back(hist_U);
+	TH1D * hist_V =  new TH1D("hist_V_Incl" ,"hist;V;Counts",40,-1,1);
+	hist_list_1D.push_back(hist_V);
+	TH1D * hist_W =  new TH1D("hist_W_Incl" ,"hist;W;Counts",40,-1,1);
+	hist_list_1D.push_back(hist_W);
+
+	TH1D * hist_vtx_X =  new TH1D("hist_vtx_X_Incl" ,"hist;vtx_X;Counts",40,-10,10);
+	hist_list_1D.push_back(hist_vtx_X);
+	TH1D * hist_vtx_Y =  new TH1D("hist_vtx_Y_Incl" ,"hist;vtx_Y;Counts",40,-10,10);
+	hist_list_1D.push_back(hist_vtx_Y);
+	TH1D * hist_vtx_Z =  new TH1D("hist_vtx_Z_Incl" ,"hist;vtx_Z;Counts",40,-10,10);
+	hist_list_1D.push_back(hist_vtx_Z);
 
 	// Connect to the RCDB
 	rcdb::Connection connection("mysql://rcdb@clasdb.jlab.org/rcdb");
@@ -75,6 +113,8 @@ int main(int argc, char** argv) {
 		BEvent		event_info		(factory.getSchema("REC::Event"		));
 		BParticle	particles		(factory.getSchema("REC::Particle"	));
 		BCalorimeter    calo                    (factory.getSchema("REC::Calorimeter"   ));
+		BScintillator	scintillator		(factory.getSchema("REC::Scintillator"	));
+		hipo::bank	scaler			(factory.getSchema("RUN::scaler"	));
 		hipo::event 	readevent;
 		
 		// Loop over all events in file
@@ -89,6 +129,8 @@ int main(int argc, char** argv) {
 			readevent.getStructure(event_info);
 			readevent.getStructure(particles);
 			readevent.getStructure(calo);
+			readevent.getStructure(scintillator);
+			readevent.getStructure(scaler);
 			
 			// Get integrated charge, livetime and start-time from REC::Event
 			double livetime = 0 , starttime = 0;
@@ -103,11 +145,17 @@ int main(int argc, char** argv) {
 			//	do electron cuts
 			bool ePass = checkElectron( ePid, eMomentum, eVertex, eTime ,eCharge, eBeta, eChi2pid, eStatus );
 			if( !ePass ) continue;
-			double Ee = calo.getTotE (0);
+			double t_e 	= scintillator.getTime(0) - starttime;
+			double E_tot 	= calo.getTotE(0);
+			double E_pcal 	= calo.getPcalE(0);
+			double lU	= calo.getLU(0);
+			double lV	= calo.getLV(0);
+			double lW	= calo.getLW(0);
+
 			// Anymore fiducial cuts that are needed
 
-			TVector3 beamVec(0,0,fixed_Ebeam);
-			TVector3 qVec = eMomentum - beamVec;
+			TVector3 beamVec(0,0,Ebeam);
+			TVector3 qVec = beamVec - eMomentum;
 			// From electron information and beam information, create kinematic variables
 			double p_e 		= eMomentum.Mag();
 			double theta_e 	        = eMomentum.Theta();
@@ -115,24 +163,30 @@ int main(int argc, char** argv) {
 			double q		= qVec.Mag();
 			double theta_q		= qVec.Theta();
 			double phi_q		= qVec.Phi();
-			double nu 		= fixed_Ebeam - sqrt( p_e*p_e + mE*mE );
+			double nu 		= Ebeam - sqrt( p_e*p_e + mE*mE );
 			double Q2 		= q*q - nu*nu;
 			double xB 		= Q2 / (2.*mP*nu);
 			double W2     		= mP*mP - Q2 + 2*nu*mP;	
-			double EoP		= Ee / p_e;
+			double EoP		= E_tot / p_e;
 			//			double sector_e	        = calo.getSector(0);	// technically this is a bit wrong, but it should all have same sector...
 			double vrt_x_e		= eVertex.X();
 			double vrt_y_e		= eVertex.Y();
 			double vrt_z_e		= eVertex.Z();
 			//			double t_e       	= scintillator.getTime(0);
 			
-			phi_theta->Fill(phi_e,theta_e);
-			eop_p->Fill(p_e,EoP);
-			hist_xB->Fill(xB);
-			hist_Q2->Fill(Q2);
-			hist_pE->Fill(p_e);
-			hist_W2->Fill(W2);
-			hist_chi->Fill(eChi2pid);
+			phi_theta    	->Fill ( phi_e,theta_e	);
+			eop_p        	->Fill ( p_e,EoP      	);
+			hist_xB      	->Fill ( xB           	);
+			hist_Q2      	->Fill ( Q2           	);
+			hist_pE      	->Fill ( p_e          	);
+			hist_W2      	->Fill ( W2           	);
+			hist_chi     	->Fill ( eChi2pid     	);
+			hist_U       	->Fill ( lU           	);
+			hist_V       	->Fill ( lV           	);
+			hist_W       	->Fill ( lW           	);
+			hist_vtx_X     	->Fill ( vrt_x_e       	);
+			hist_vtx_Y     	->Fill ( vrt_y_e       	);
+			hist_vtx_Z     	->Fill ( vrt_z_e       	);
 
 
 		} // end loop over events
