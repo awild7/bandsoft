@@ -64,35 +64,53 @@ int main(int argc, char** argv) {
 	outTree->Branch("Q2"		,&Q2			);
 	outTree->Branch("xB"		,&xB			);
 	outTree->Branch("W2"		,&W2			);
-	TH2D * phi_theta = new TH2D("phi_v_theta","phiE_v_thetaE;phi;theta;Counts",100,0,2*M_PI,100,0.1,0.7);
-	TH2D * eop_p = new TH2D("eop_v_p","eE/pE_v_pE;eE/pE;pE;Counts",110,0,11,150,0,1.5);
+
+	vector<TH1*> hist_list_2D;	
+
+	TH2D * eop_U = new TH2D("eop_v_U","eE/pE_v_U;eE/pE;U;Counts",40,0,300,100,0,0.5);
+	hist_list_2D.push_back(eop_U);
+	TH2D * eop_V = new TH2D("eop_v_V","eE/pE_v_V;eE/pE;V;Counts",40,0,300,100,0,0.5);
+	hist_list_2D.push_back(eop_V);
+	TH2D * eop_W = new TH2D("eop_v_W","eE/pE_v_W;eE/pE;W;Counts",40,0,300,100,0,0.5);
+	hist_list_2D.push_back(eop_W);
+	TH2D * chi_U = new TH2D("chi_v_U","chi_v_U;chi;U;Counts",40,0,300,140,-7,7);
+	hist_list_2D.push_back(chi_U);
+	TH2D * chi_V = new TH2D("chi_v_V","chi_v_V;chi;V;Counts",40,0,300,140,-7,7);
+	hist_list_2D.push_back(chi_V);
+	TH2D * chi_W = new TH2D("chi_v_W","chi_v_W;chi;W;Counts",40,0,300,140,-7,7);
+	hist_list_2D.push_back(chi_W);
 
 	vector<TH1*> hist_list_1D;
+	int lengA = 6;
+	double ULower[] = {0,10,20,30,40,50};
+	double VWLower[] = {0,5,10,15,20,25};
+	TH1D * hist_chi[lengA][lengA];
+	TH1D * hist_eop[lengA][lengA];
+	for(int k=0; k<lengA; k++){
+	  for(int l=0; l<lengA; l++){
+	  char temp1[100];
+	  sprintf(temp1,"hist_chi_%f_%f",ULower[k],VWLower[l]);
+	  hist_chi[k][l] = new TH1D(temp1,"hist;chi;Counts",140,-7,7);
+	  hist_list_1D.push_back(hist_chi[k][l]);
+
+	  char temp2[100];
+	  sprintf(temp2,"hist_eop_%f_%f",ULower[k],VWLower[l]);
+	  hist_eop[k][l] = new TH1D(temp2,"hist;eop;Counts",100,0,0.5);
+	  hist_list_1D.push_back(hist_eop[k][l]);
+	  }
+	}
+
+
+	
 	TH1D * hist_xB =  new TH1D("hist_xB_Incl" ,"hist;xB;Counts",50,0,1.5);
 	hist_list_1D.push_back(hist_xB);
-	TH1D * hist_Q2 =  new TH1D("hist_Q2_Incl" ,"hist;Q2;Counts",100,0,5);
+	TH1D * hist_Q2 =  new TH1D("hist_Q2_Incl" ,"hist;Q2;Counts",100,0,8);
 	hist_list_1D.push_back(hist_Q2);
 	TH1D * hist_pE =  new TH1D("hist_pE_Incl" ,"hist;pE;Counts",110,0,11);
 	hist_list_1D.push_back(hist_pE);
-	TH1D * hist_W2 =  new TH1D("hist_W2_Incl" ,"hist;W2;Counts",100,0,8);
+	TH1D * hist_W2 =  new TH1D("hist_W2_Incl" ,"hist;W2;Counts",100,0,30);
 	hist_list_1D.push_back(hist_W2);
-	TH1D * hist_chi =  new TH1D("hist_chi_Incl" ,"hist;chi;Counts",50,0,1.5);
-	hist_list_1D.push_back(hist_chi);
-
-	TH1D * hist_U =  new TH1D("hist_U_Incl" ,"hist;U;Counts",40,-1,1);
-	hist_list_1D.push_back(hist_U);
-	TH1D * hist_V =  new TH1D("hist_V_Incl" ,"hist;V;Counts",40,-1,1);
-	hist_list_1D.push_back(hist_V);
-	TH1D * hist_W =  new TH1D("hist_W_Incl" ,"hist;W;Counts",40,-1,1);
-	hist_list_1D.push_back(hist_W);
-
-	TH1D * hist_vtx_X =  new TH1D("hist_vtx_X_Incl" ,"hist;vtx_X;Counts",40,-10,10);
-	hist_list_1D.push_back(hist_vtx_X);
-	TH1D * hist_vtx_Y =  new TH1D("hist_vtx_Y_Incl" ,"hist;vtx_Y;Counts",40,-10,10);
-	hist_list_1D.push_back(hist_vtx_Y);
-	TH1D * hist_vtx_Z =  new TH1D("hist_vtx_Z_Incl" ,"hist;vtx_Z;Counts",40,-10,10);
-	hist_list_1D.push_back(hist_vtx_Z);
-
+	
 	// Connect to the RCDB
 	rcdb::Connection connection("mysql://rcdb@clasdb.jlab.org/rcdb");
 
@@ -120,7 +138,7 @@ int main(int argc, char** argv) {
 		// Loop over all events in file
 		int event_counter = 0;
 		double int_charge = 0;
-		while(reader.next()==true){
+		while( (reader.next()==true) && (event_counter<10000) ){
 			if(event_counter%10000==0) cout << "event: " << event_counter << endl;
 			event_counter++;
 
@@ -151,7 +169,6 @@ int main(int argc, char** argv) {
 			double lU	= calo.getLU(0);
 			double lV	= calo.getLV(0);
 			double lW	= calo.getLW(0);
-
 			// Anymore fiducial cuts that are needed
 
 			TVector3 beamVec(0,0,Ebeam);
@@ -174,20 +191,29 @@ int main(int argc, char** argv) {
 			double vrt_z_e		= eVertex.Z();
 			//			double t_e       	= scintillator.getTime(0);
 			
-			phi_theta    	->Fill ( phi_e,theta_e	);
-			eop_p        	->Fill ( p_e,EoP      	);
+			eop_U        	->Fill ( lU    		,EoP      	);
+			eop_V        	->Fill ( lV    		,EoP      	);
+			eop_W        	->Fill ( lW    		,EoP      	);
+			chi_U        	->Fill ( lU    		,eChi2pid      	);
+			chi_V        	->Fill ( lV    		,eChi2pid      	);
+			chi_W        	->Fill ( lW    		,eChi2pid      	);
+
+			for(int k=0; k<lengA; k++){
+			  for(int l=0; l<lengA; l++){
+			    if(lU > ULower[k]){
+			      if( (lV > VWLower[l]) && (lW > VWLower[l]) ){
+				hist_eop[k][l]->Fill( EoP );
+				hist_chi[k][l]->Fill( eChi2pid );
+			      } 
+			    } 
+			  }
+			}
+
+			
 			hist_xB      	->Fill ( xB           	);
 			hist_Q2      	->Fill ( Q2           	);
 			hist_pE      	->Fill ( p_e          	);
 			hist_W2      	->Fill ( W2           	);
-			hist_chi     	->Fill ( eChi2pid     	);
-			hist_U       	->Fill ( lU           	);
-			hist_V       	->Fill ( lV           	);
-			hist_W       	->Fill ( lW           	);
-			hist_vtx_X     	->Fill ( vrt_x_e       	);
-			hist_vtx_Y     	->Fill ( vrt_y_e       	);
-			hist_vtx_Z     	->Fill ( vrt_z_e       	);
-
 
 		} // end loop over events
 		cout << int_charge << "\n";
@@ -196,11 +222,12 @@ int main(int argc, char** argv) {
 
 	outFile->cd();
 	outTree->Write();
+	for(int k=0; k<hist_list_2D.size(); k++){
+	  hist_list_2D[k]->Write();
+	}	
 	for(int k=0; k<hist_list_1D.size(); k++){
 	  hist_list_1D[k]->Write();
 	}
-	phi_theta->Write();
-	eop_p->Write();			 
 	outFile->Close();
 
 	return 0;
@@ -250,3 +277,90 @@ bool checkElectron( int pid, TVector3 momentum, TVector3 vertex, double time, in
 	if( pid != 11 || charge != -1 ) return false;
 	return true;
 }
+
+	/*TH2D * phi_theta = new TH2D("phi_v_theta","phiE_v_thetaE;phi;theta;Counts",100,-M_PI,M_PI,100,0.1,0.7);
+	hist_list_2D.push_back(phi_theta);
+	TH2D * eop_p = new TH2D("eop_v_p","eE/pE_v_pE;eE/pE;pE;Counts",110,0,11,100,0,0.5);
+	hist_list_2D.push_back(eop_p);
+	TH2D * eop_W2 = new TH2D("eop_v_W2","eE/pE_v_W2;eE/pE;W2;Counts",100,0,30,100,0,0.5);
+	hist_list_2D.push_back(eop_W2);
+	TH2D * eop_xB = new TH2D("eop_v_xB","eE/pE_v_xB;eE/pE;xB;Counts",50,0,1.5,100,0,0.5);
+	hist_list_2D.push_back(eop_xB);
+	TH2D * eop_vtx_X = new TH2D("eop_v_vtx_X","eE/pE_v_vtx_X;eE/pE;vtx_X;Counts",40,-10,10,100,0,0.5);
+	hist_list_2D.push_back(eop_vtx_X);
+	TH2D * eop_vtx_Y = new TH2D("eop_v_vtx_Y","eE/pE_v_vtx_Y;eE/pE;vtx_Y;Counts",40,-10,10,100,0,0.5);
+	hist_list_2D.push_back(eop_vtx_Y);
+	TH2D * eop_vtx_Z = new TH2D("eop_v_vtx_Z","eE/pE_v_vtx_Z;eE/pE;vtx_Z;Counts",35,-20,15,100,0,0.5);
+	hist_list_2D.push_back(eop_vtx_Z);
+	TH2D * chi_p = new TH2D("chi_v_p","chi_v_pE;chi;pE;Counts",110,0,11,140,-7,7);
+	hist_list_2D.push_back(chi_p);
+	TH2D * chi_W2 = new TH2D("chi_v_W2","chi_v_W2;chi;W2;Counts",100,0,30,140,-7,7);
+	hist_list_2D.push_back(chi_W2);
+	TH2D * chi_xB = new TH2D("chi_v_xB","chi_v_xB;chi;xB;Counts",50,0,1.5,140,-7,7);
+	hist_list_2D.push_back(chi_xB);
+	TH2D * chi_vtx_X = new TH2D("chi_v_vtx_X","chi_v_vtx_X;chi;vtx_X;Counts",40,-10,10,140,-7,7);
+	hist_list_2D.push_back(chi_vtx_X);
+	TH2D * chi_vtx_Y = new TH2D("chi_v_vtx_Y","chi_v_vtx_Y;chi;vtx_Y;Counts",40,-10,10,140,-7,7);
+	hist_list_2D.push_back(chi_vtx_Y);
+	TH2D * chi_vtx_Z = new TH2D("chi_v_vtx_Z","chi_v_vtx_Z;chi;vtx_Z;Counts",35,-20,15,140,-7,7);
+	hist_list_2D.push_back(chi_vtx_Z);
+	*/
+
+	/*
+	TH1D * hist_U =  new TH1D("hist_U_Incl" ,"hist;U;Counts",40,0,300);
+	hist_list_1D.push_back(hist_U);
+	TH1D * hist_V =  new TH1D("hist_V_Incl" ,"hist;V;Counts",40,0,300);
+	hist_list_1D.push_back(hist_V);
+	TH1D * hist_W =  new TH1D("hist_W_Incl" ,"hist;W;Counts",40,0,300);
+	hist_list_1D.push_back(hist_W);
+
+	TH1D * hist_vtx_X =  new TH1D("hist_vtx_X_Incl" ,"hist;vtx_X;Counts",40,-10,10);
+	hist_list_1D.push_back(hist_vtx_X);
+	TH1D * hist_vtx_Y =  new TH1D("hist_vtx_Y_Incl" ,"hist;vtx_Y;Counts",40,-10,10);
+	hist_list_1D.push_back(hist_vtx_Y);
+	TH1D * hist_vtx_Z =  new TH1D("hist_vtx_Z_Incl" ,"hist;vtx_Z;Counts",35,-20,15);
+	hist_list_1D.push_back(hist_vtx_Z);
+	*/
+
+/*
+			phi_theta    	->Fill ( phi_e		,theta_e	);
+			eop_p        	->Fill ( p_e	       	,EoP      	);
+			eop_W2        	->Fill ( W2    		,EoP      	);
+			eop_xB        	->Fill ( xB    		,EoP      	);
+			eop_vtx_X      	->Fill ( vrt_x_e       	,EoP      	);
+			eop_vtx_Y     	->Fill ( vrt_y_e       	,EoP      	);
+			eop_vtx_Z      	->Fill ( vrt_z_e       	,EoP      	);
+			chi_p        	->Fill ( p_e	       	,eChi2pid      	);
+			chi_W2        	->Fill ( W2    		,eChi2pid      	);
+			chi_xB        	->Fill ( xB    		,eChi2pid      	);
+			chi_vtx_X      	->Fill ( vrt_x_e       	,eChi2pid      	);
+			chi_vtx_Y     	->Fill ( vrt_y_e       	,eChi2pid      	);
+			chi_vtx_Z      	->Fill ( vrt_z_e       	,eChi2pid      	);
+*/
+			/*
+			hist_U       	->Fill ( lU           	);
+			hist_V       	->Fill ( lV           	);
+			hist_W       	->Fill ( lW           	);
+			hist_vtx_X     	->Fill ( vrt_x_e       	);
+			hist_vtx_Y     	->Fill ( vrt_y_e       	);
+			hist_vtx_Z     	->Fill ( vrt_z_e       	);
+			*/
+	/*
+	for(int k=0; k<lengA; k++){
+	  for(int l=0; l<lengA; l++){
+	    if(lU > ULower[k]){
+	      if( (lV > VWLower[l]) && (lW > VWLower[l]) ){
+		TF1 * myChiFit = new TF1("myChiFit","gaus",-7,7);   //Define Fit
+		myChiFit->SetParameter(0,hist_chi[k][l]->GetMaximum());
+		myADCfit->SetParameter(1,hist_chi[k][l]->GetMean());
+		myADCfit->SetParameter(2,hist_chi[k][l]-GetStd());
+		TFitResultPtr pointChi = hist_chi[k][l]->Fit(myChiFit,"qeSrn","",-7,7);
+		cout<<"U Cut: "<<ULower[k]<<"   V & W Cut: "<<VWLower[k]
+		    <<"Fit Mean: "<<pointChi->Parameter(1)<<"   Fit Mean Error: "<<pointChi->ParError(1)
+		    <<"Fit Sigma: "<<pointChi->Parameter(2)<<"   Fit Sigma Error: "<<pointChi->ParError(2);
+
+	      } 
+	    } 
+	  }
+	}
+	*/
