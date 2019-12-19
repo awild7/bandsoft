@@ -131,6 +131,7 @@ int main(int argc, char** argv) {
 	// Connect to the RCDB
 	rcdb::Connection connection("mysql://rcdb@clasdb.jlab.org/rcdb");
 
+	gated_charge = 0;
 	// Load input file
 	for( int i = 2 ; i < argc ; i++ ){
 		// Using run number of current file, grab the beam energy from RCDB
@@ -154,7 +155,6 @@ int main(int argc, char** argv) {
 		
 		// Loop over all events in file
 		int event_counter = 0;
-		gated_charge = 0;
 		while(reader.next()==true){
 			eChi2pid 	= 0;
 			lU		= 0;
@@ -295,9 +295,9 @@ int main(int argc, char** argv) {
 			outTree->Fill();
 
 		} // end loop over events
-		cout << "Total charge collected in file: " << gated_charge << " [microC]\n";
-		cout << "Total number of events (e,e'p): " << outTree->GetEntries() << "\n";
 	}// end loop over files
+	cout << "Total charge collected in file: " << gated_charge << " [microC]\n";
+	cout << "Total number of events (e,e'p): " << outTree->GetEntries() << "\n";
 	
 
 	outFile->cd();
@@ -346,8 +346,9 @@ int main(int argc, char** argv) {
 
 
 int getRunNumber( string filename ){
-	string parsed = filename.substr( filename.find("inc") );
-	string moreparse = parsed.substr(4,6);
+	//string parsed = filename.substr( filename.find("inc") );
+	string parsed = filename.substr( filename.find("_clas") );
+	string moreparse = parsed.substr(6,8);
         return stoi(moreparse);
 }
 
