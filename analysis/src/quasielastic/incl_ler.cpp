@@ -65,8 +65,11 @@ int main(int argc, char** argv) {
 	outTree->Branch("xB"		,&xB			);
 	outTree->Branch("W2"		,&W2			);
 
-	vector<TH1*> hist_list_2D;	
+	vector<TH1*> hist_list_1D;
+	vector<TH2*> hist_list_2D;	
 
+	//These are for finding pid cuts
+	/*
 	TH2D * eop_U = new TH2D("eop_v_U","eE/pE_v_U;eE/pE;U;Counts",40,0,300,100,0,0.5);
 	hist_list_2D.push_back(eop_U);
 	TH2D * eop_V = new TH2D("eop_v_V","eE/pE_v_V;eE/pE;V;Counts",40,0,300,100,0,0.5);
@@ -79,8 +82,7 @@ int main(int argc, char** argv) {
 	hist_list_2D.push_back(chi_V);
 	TH2D * chi_W = new TH2D("chi_v_W","chi_v_W;chi;W;Counts",40,0,300,140,-7,7);
 	hist_list_2D.push_back(chi_W);
-
-	vector<TH1*> hist_list_1D;
+	
 	int lengA = 6;
 	double ULower[] = {0,10,20,30,40,50};
 	double VWLower[] = {0,5,10,15,20,25};
@@ -99,17 +101,21 @@ int main(int argc, char** argv) {
 	  hist_list_1D.push_back(hist_eop[k][l]);
 	  }
 	}
+	*/
 
 
-	
-	TH1D * hist_xB =  new TH1D("hist_xB_Incl" ,"hist;xB;Counts",50,0,1.5);
-	hist_list_1D.push_back(hist_xB);
-	TH1D * hist_Q2 =  new TH1D("hist_Q2_Incl" ,"hist;Q2;Counts",100,0,8);
-	hist_list_1D.push_back(hist_Q2);
-	TH1D * hist_pE =  new TH1D("hist_pE_Incl" ,"hist;pE;Counts",110,0,11);
-	hist_list_1D.push_back(hist_pE);
-	TH1D * hist_W2 =  new TH1D("hist_W2_Incl" ,"hist;W2;Counts",100,0,30);
-	hist_list_1D.push_back(hist_W2);
+	TH1D * h1_sim_p_e	= new TH1D("h1_sim_p_e",	"h1_sim_p_e",		55,0,11);
+	hist_list_1D.push_back(h1_sim_p_e);
+	TH1D * h1_sim_th_e	= new TH1D("h1_sim_th_e",	"h1_sim_th_e",		50,0,25);
+	hist_list_1D.push_back(h1_sim_th_e);
+	TH2D * h2_sim_th_ph_e	= new TH2D("h2_sim_th_ph_e",	"h2_sim_th_ph_e",	120,-180,180,60,0,30);
+	hist_list_2D.push_back(h2_sim_th_ph_e);
+	TH1D * h1_sim_xB_e	= new TH1D("h1_sim_xB_e",	"h1_sim_xB_e",		50,0,1.5);
+	hist_list_1D.push_back(h1_sim_xB_e);
+	TH1D * h1_sim_Q2_e	= new TH1D("h1_sim_Q2_e",	"h1_sim_Q2_e",		50,0,3);
+	hist_list_1D.push_back(h1_sim_Q2_e);
+	TH1D * h1_sim_W_e	= new TH1D("h1_sim_W_e",	"h1_sim_W_e",		50,0,5);
+	hist_list_1D.push_back(h1_sim_W_e);
 	
 	// Connect to the RCDB
 	rcdb::Connection connection("mysql://rcdb@clasdb.jlab.org/rcdb");
@@ -175,11 +181,11 @@ int main(int argc, char** argv) {
 			TVector3 qVec = beamVec - eMomentum;
 			// From electron information and beam information, create kinematic variables
 			double p_e 		= eMomentum.Mag();
-			double theta_e 	        = eMomentum.Theta();
-			double phi_e		= eMomentum.Phi();
+			double theta_e 	        = eMomentum.Theta() * 180 / M_PI;
+			double phi_e		= eMomentum.Phi() * 180 / M_PI;
 			double q		= qVec.Mag();
-			double theta_q		= qVec.Theta();
-			double phi_q		= qVec.Phi();
+			double theta_q		= qVec.Theta() * 180 / M_PI;
+			double phi_q		= qVec.Phi() * 180 / M_PI;
 			double nu 		= Ebeam - sqrt( p_e*p_e + mE*mE );
 			double Q2 		= q*q - nu*nu;
 			double xB 		= Q2 / (2.*mP*nu);
@@ -191,6 +197,7 @@ int main(int argc, char** argv) {
 			double vrt_z_e		= eVertex.Z();
 			//			double t_e       	= scintillator.getTime(0);
 			
+			/*
 			eop_U        	->Fill ( lU    		,EoP      	);
 			eop_V        	->Fill ( lV    		,EoP      	);
 			eop_W        	->Fill ( lW    		,EoP      	);
@@ -208,12 +215,14 @@ int main(int argc, char** argv) {
 			    } 
 			  }
 			}
+			*/
 
-			
-			hist_xB      	->Fill ( xB           	);
-			hist_Q2      	->Fill ( Q2           	);
-			hist_pE      	->Fill ( p_e          	);
-			hist_W2      	->Fill ( W2           	);
+			h1_sim_p_e      	->Fill ( p_e          	);
+			h1_sim_th_e     	->Fill ( theta_e       	);
+			h2_sim_th_ph_e     	->Fill ( phi_e,         theta_e       	);
+			h1_sim_xB_e      	->Fill ( xB           	);
+			h1_sim_Q2_e      	->Fill ( Q2           	);
+			h1_sim_W_e      	->Fill ( sqrt(W2)     	);
 
 		} // end loop over events
 		cout << int_charge << "\n";

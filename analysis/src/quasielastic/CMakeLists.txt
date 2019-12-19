@@ -28,3 +28,15 @@ target_link_libraries(eepcompare ${ROOT_LIBRARIES} )
 install( TARGETS eepcompare
 		DESTINATION ${CMAKE_SOURCE_DIR}/analysis/bin )
 
+include_directories(${INCLUDES})
+add_executable(incl_makesimhists incl_makesimhists.cpp )
+target_link_libraries(incl_makesimhists ${ROOT_LIBRARIES} )
+install( TARGETS incl_makesimhists
+		DESTINATION ${CMAKE_SOURCE_DIR}/analysis/bin )
+
+include_directories(${INCLUDES})
+add_executable(incl_compare incl_compare.cpp )
+target_link_libraries(incl_compare ${ROOT_LIBRARIES} )
+install( TARGETS incl_compare
+		DESTINATION ${CMAKE_SOURCE_DIR}/analysis/bin )
+
